@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -107,6 +108,12 @@ func processFiles() error {
 	return nil
 }
 
+func removeMultipleNewlines(content []byte) []byte {
+	rn := regexp.MustCompile(`\n+`)
+	rb := regexp.MustCompile(`}\n*`)
+	return bytes.TrimRight(rb.ReplaceAll(rn.ReplaceAll(content, []byte("\n")), []byte("}\n\n")), "\n")
+}
+
 func processFile(fn string, in *os.File) error {
 	var err error
 	var hasLocalChanges bool = false
@@ -131,7 +138,7 @@ func processFile(fn string, in *os.File) error {
 		}
 	}
 
-	outSrc := hclwrite.Format(inSrc)
+	outSrc := hclwrite.Format(removeMultipleNewlines((inSrc)))
 
 	if !bytes.Equal(inSrc, outSrc) {
 		changed = append(changed, fn)
